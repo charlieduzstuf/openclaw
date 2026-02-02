@@ -39,7 +39,7 @@ describe("ollama native provider", () => {
     expect(url).toBe("http://tars.local:11434/api/chat");
     expect(options.method).toBe("POST");
 
-    const parsedBody = JSON.parse(options.body);
+    const parsedBody = JSON.parse(bodyToString(options.body));
     expect(parsedBody).toMatchObject({
       model: "qwen2.5",
       messages,
@@ -116,3 +116,36 @@ describe("ollama native provider", () => {
     expect(result.error).toContain("Cannot connect to Ollama");
   });
 });
+
+const textDecoder = new TextDecoder();
+
+function bodyToString(body: BodyInit | null | undefined): string {
+  if (typeof body === "string") {
+    return body;
+  }
+
+  if (!body) {
+    return "";
+  }
+
+  if (body instanceof URLSearchParams) {
+    return body.toString();
+  }
+
+  if (body instanceof ArrayBuffer) {
+    return textDecoder.decode(new Uint8Array(body));
+  }
+
+  if (body instanceof Uint8Array) {
+    return textDecoder.decode(body);
+  }
+
+  if (
+    typeof body === "object" &&
+    typeof (body as { toString?: () => string }).toString === "function"
+  ) {
+    return body.toString();
+  }
+
+  throw new Error("Unable to decode fetch body");
+}
